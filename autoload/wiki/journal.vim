@@ -15,7 +15,7 @@ function! wiki#journal#copy_note() abort " {{{1
   let l:next = s:get_next_entry()
 
   let l:next_entry = wiki#paths#s(printf('%s/%s.%s',
-        \ b:wiki.root_journal, l:next, b:wiki.extension))
+        \ b:wiki.root_journal, l:next, b:wiki.extension . '.asc'))
   if !filereadable(l:next_entry)
     execute 'write' l:next_entry
   endif
@@ -136,7 +136,7 @@ endfunction
 " }}}1
 function! s:get_links_generic(rx, fmt) abort " {{{1
   let l:globpat = wiki#paths#s(printf('%s/*.%s',
-        \ b:wiki.root_journal, b:wiki.extension))
+        \ b:wiki.root_journal, b:wiki.extension . '.asc'))
   let l:links = filter(map(glob(l:globpat, 0, 1),
         \   'fnamemodify(v:val, '':t:r'')'),
         \ 'v:val =~# a:rx')

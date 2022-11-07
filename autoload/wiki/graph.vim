@@ -27,12 +27,46 @@ endfunction
 
 "}}}1
 
+function! wiki#graph#check_unlinked_pages() abort "{{{1
+    let l:broken_links = []
+    let l:visited = []
+    let l:files = [fnamemodify(b:wiki.root, ":p") . 'index.' . b:wiki.extension]
+    while !empty(l:files)
+        let l:file = remove(l:files, 0)
+        if index(l:visited, l:file) >= 0 | continue | endif
+        let l:visited += [l:file]
+        for l:link in map(filter(wiki#link#get_all(l:file),
+                    \ 'get(v:val, ''scheme'', '''') ==# ''wiki'''),
+                    \ 'fnamemodify(v:val.path, '':p'')')
+            if index(l:files, l:link) >= 0 | continue | endif
+            if index(l:visited, l:link) >= 0 | continue | endif
+            let l:files += [l:link]
+        endfor
+    endwhile
+    for l:file in globpath(b:wiki.root, '**/*.' . b:wiki.extension, 0, 1)
+        " Don't count journal files as unlinked
+        if stridx(l:file, b:wiki.root_journal) >= 0 | continue | endif
+        if index(l:visited, l:file) < 0
+            call add(l:broken_links, {
+                  \ 'filename': l:file,
+                  \ 'text': "No path from index",
+                  \ 'anchor': '',
+                  \ 'lnum': 1,
+                  \ 'col': 1
+                  \})
+        endif
+    endfor
+    return l:broken_links
+endfunction
+"}}}1
+
+
 function! wiki#graph#check_links() abort "{{{1
   redraw
   call wiki#log#info('Scanning wiki for broken links ... ')
   sleep 25m
 
-  let l:broken_links = []
+  let l:broken_links = wiki#graph#check_unlinked_pages()
 
   for l:file in globpath(b:wiki.root, '**/*.' . b:wiki.extension, 0, 1)
     for l:link in filter(wiki#link#get_all(l:file),
@@ -40,7 +74,7 @@ function! wiki#graph#check_links() abort "{{{1
       if !filereadable(l:link.path)
         call add(l:broken_links, {
               \ 'filename': l:file,
-              \ 'text': l:link.content,
+              \ 'text': "Broken link: " . l:link.content,
               \ 'anchor': l:link.anchor,
               \ 'lnum': l:link.pos_start[0],
               \ 'col': l:link.pos_start[1]
@@ -60,6 +94,7 @@ function! wiki#graph#check_links() abort "{{{1
 endfunction
 
 "}}}1
+
 
 function! wiki#graph#out(...) abort " {{{1
   let l:max_level = a:0 > 0 ? a:1 : -1

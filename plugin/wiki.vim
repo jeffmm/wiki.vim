@@ -23,21 +23,21 @@ call wiki#init#option('wiki_export', {
       \ 'view' : v:false,
       \ 'output' : fnamemodify(tempname(), ':h'),
       \})
-call wiki#init#option('wiki_filetypes', ['wiki'])
+call wiki#init#option('wiki_filetypes', ['md'])
 call wiki#init#option('wiki_fzf_pages_opts', '')
-call wiki#init#option('wiki_global_load', 1)
+call wiki#init#option('wiki_global_load', 0)
 call wiki#init#option('wiki_index_name', 'index')
 call wiki#init#option('wiki_journal', {
       \ 'name' : 'journal',
-      \ 'frequency' : 'daily',
+      \ 'frequency' : 'monthly',
       \ 'date_format' : {
-      \   'daily' : '%Y-%m-%d',
+      \   'daily' : '%Y%m%d',
       \   'weekly' : '%Y_w%V',
-      \   'monthly' : '%Y_m%m',
+      \   'monthly' : '%Y%m',
       \ },
       \})
-call wiki#init#option('wiki_link_extension', '')
-call wiki#init#option('wiki_link_target_type', 'wiki')
+call wiki#init#option('wiki_link_extension', '.md')
+call wiki#init#option('wiki_link_target_type', 'md')
 call wiki#init#option('wiki_link_toggle_on_follow', 1)
 call wiki#init#option('wiki_link_toggles', {
       \ 'wiki': 'wiki#link#md#template',
@@ -83,24 +83,48 @@ command! WikiOpen     call wiki#page#open_ask()
 command! WikiReload   call wiki#reload()
 command! WikiJournal  call wiki#journal#make_note()
 command! CtrlPWiki    call ctrlp#init(ctrlp#wiki#id())
-command! WikiFzfPages call wiki#fzf#pages()
-command! WikiFzfTags  call wiki#fzf#tags()
+" command! -bang WikiFzfPages call wiki#fzf#pages(<bang>0)
+" command! -bang WikiFzfPages
+        " \ call fzf#vim#files("~/.vim/wiki", fzf#vim#with_preview({'options': ['--layout=reverse', '--info=inline']}), <bang>0)
+
+" command! -bang WikiFzfTags  call wiki#fzf#tags(<bang>0)
+" command! -bang WikiFzfText  call wiki#fzf#text(<bang>0)
+
+" Search note tags, which is any word surrounded by colons (vimwiki style tags)
+command! -bang WikiSearchTags 
+      \ call wiki#fzf#rg_text(<bang>0, ':[a-zA-Z0-9]+:', fnameescape(wiki#get_root_global()))
+nnoremap <silent><script> <Plug>WikiSearchTags :WikiSearchTags<CR>
+
+" Search for text in wiki files
+command! -bang WikiSearchText 
+      \ call wiki#fzf#rg_text(<bang>0, '[a-zA-Z0-9]+', fnameescape(wiki#get_root_global()))
+nnoremap <silent><script> <Plug>WikiSearchText :WikiSearchText<CR>
+
+" Search for filenames in wiki
+command! -bang -nargs=? -complete=dir WikiSearchFiles 
+      \ call wiki#fzf#rg_files(<bang>0, fnameescape(wiki#get_root_global()))
+nnoremap <silent><script> <Plug>WikiSearchFiles :WikiSearchFiles<CR>
 
 " Initialize mappings
 nnoremap <silent> <plug>(wiki-index)     :WikiIndex<cr>
 nnoremap <silent> <plug>(wiki-open)      :WikiOpen<cr>
 nnoremap <silent> <plug>(wiki-journal)   :WikiJournal<cr>
 nnoremap <silent> <plug>(wiki-reload)    :WikiReload<cr>
-nnoremap <silent> <plug>(wiki-fzf-pages) :WikiFzfPages<cr>
-nnoremap <silent> <plug>(wiki-fzf-tags)  :WikiFzfTags<cr>
+" nnoremap <silent> <plug>(wiki-fzf-pages) :WikiFzfPages<cr>
+nnoremap <silent> <plug>(wiki-fzf-pages) :WikiSearchFiles<cr>
+nnoremap <silent> <plug>(wiki-fzf-tags)  :WikiSearchTags<cr>
+nnoremap <silent> <plug>(wiki-fzf-text)  :WikiSearchText<cr>
 
 " Apply default mappings
 let s:mappings = index(['all', 'global'], g:wiki_mappings_use_defaults) >= 0
       \ ? {
       \ '<plug>(wiki-index)' : '<leader>ww',
       \ '<plug>(wiki-open)' : '<leader>wn',
-      \ '<plug>(wiki-journal)' : '<leader>w<leader>w',
+      \ '<plug>(wiki-journal)' : '<leader>wj',
       \ '<plug>(wiki-reload)' : '<leader>wx',
+      \ '<plug>(wiki-fzf-pages)' : '<leader>wsf',
+      \ '<plug>(wiki-fzf-tags)' : '<leader>wsT',
+      \ '<plug>(wiki-fzf-text)' : '<leader>wst',
       \} : {}
 call extend(s:mappings, get(g:, 'wiki_mappings_global', {}))
 call wiki#init#apply_mappings_from_dict(s:mappings, '')

@@ -9,7 +9,9 @@ function! wiki#page#open(page) abort "{{{1
         \ !empty(g:wiki_map_create_page) && exists('*' . g:wiki_map_create_page)
         \ ? call(g:wiki_map_create_page, [a:page])
         \ : a:page
-  call wiki#url#parse('wiki:/' . l:page).follow()
+  let l:link = wiki#url#parse('wiki:/' . l:page)
+  let l:link.origin = ""
+  call l:link.follow()
 endfunction
 
 "}}}1
